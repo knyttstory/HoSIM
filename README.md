@@ -1,6 +1,6 @@
 # HoSIM
  
-* calculate_importance.py: calculates the higher-order structural importance
+* calculate_importance.py: calculate the higher-order structural importance
 * data_setting.py: dataset setting
 * detect_community.py: detect local communities
 * evaluate_community.py: evaluate detected communities on F1-score

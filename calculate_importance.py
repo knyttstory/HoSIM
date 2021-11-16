@@ -19,13 +19,14 @@ def diffuse_node(graph_data, dn, diffused_nodes, coefficient_nodes):
         A = nx.to_numpy_array(temp_subgraph, nodelist=sorted_nodes, dtype=np.float16)
         degree_array = [1/nx.degree(temp_subgraph, tn) for tn in sorted_nodes]
         inverse_D = np.diag(degree_array)
-        one_array = np.ones(len(sorted_nodes))
-        I = np.diag(one_array)
-        transition_matrix = 1/2 * (I + np.dot(inverse_D, A))
+        transition_matrix = np.dot(inverse_D, A)
         probability_vector = np.zeros((1, len(sorted_nodes)))
         probability_vector[0, seed_index] = 1
         for i in range(pr_steps):
             probability_vector = np.dot(probability_vector, transition_matrix)
+            if probability_vector[0][seed_index] > 0:
+                probability_vector += probability_vector[0][seed_index] * transition_matrix[seed_index]
+                probability_vector[0][seed_index] = 0
         diffused_nodes[dn] = dict()
         for si, sn in enumerate(sorted_nodes):
             diffused_nodes[dn][sn] = probability_vector[0, si]

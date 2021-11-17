@@ -55,9 +55,11 @@ def main():
     detect_path = "sf%s_cn%d_at%.1f_rf%s_rt%.1f" % ("T" if speedup_flag else "F", components_number, add_threshold, "T" if remove_flag else "F", remove_threshold)
     os.makedirs(os.path.join(output_path, dataset_name, sample_path, detect_path), exist_ok=True)
     print("Start to detect communities")
+    sum_nodes = 0
     for i in range(len(dataset_seeds)):
         with open(os.path.join(dataset_path, dataset_name, dataset_seeds[i]), 'rb') as sf:
             query_nodes = pickle.load(sf)
+        sum_nodes += len(query_nodes)
         detected_communities = dict()
         for qn in tqdm.tqdm(query_nodes):
             subgraph_data = nx.subgraph(graph_data, sampled_all_subgraphs[qn])
@@ -66,12 +68,12 @@ def main():
             pickle.dump(detected_communities, df)
     with open(os.path.join(output_path, dataset_name, diffusion_path), 'wb') as df:
         pickle.dump((diffused_nodes, coefficient_nodes), df)
-    return sample_path, detect_path
+    return sample_path, detect_path, sum_nodes
 
 if __name__ == '__main__':
     print(dataset_name)
     preprocess_data.main(dataset_name)
     start_time = time.time()
-    sample_path, detect_path = main()
-    print(round(time.time() - start_time, 2) / 500)
+    sample_path, detect_path, sum_nodes = main()
+    print(round(time.time() - start_time, 2) / sum_nodes)
     evaluate_community.main_run(sample_path, detect_path)

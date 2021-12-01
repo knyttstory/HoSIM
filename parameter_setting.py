@@ -1,7 +1,6 @@
 maximum_neighbor_number = 10
 pr_steps = 4
 pr_hop = 2
-alpha = 0.01
 
 diffusion_size = 100
 lorw_flag = True

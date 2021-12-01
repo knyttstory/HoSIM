@@ -26,4 +26,4 @@ How to use your own datasets
 
 You can create a new folder and copy the graph data as well as the community data into the folder. Note that, you should also change the corresponding variables in "data_setting.py". 
 
-The detection results are generated in the folder of "Results". You can open an excel file to check the F1-socres.
+The detection results are generated in the folder of "Results", and you can open an excel file "evaluation_community.xlsx" to check the F1-socre.

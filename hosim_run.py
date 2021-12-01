@@ -18,7 +18,7 @@ def read_graph_data():
     return graph_data
 
 def read_diffusion_information():
-    diffusion_path = dataset_name + '_diffusion_r%d_p%d_n%d_a%.2f.pkl' % (pr_hop, pr_steps, maximum_neighbor_number, alpha)
+    diffusion_path = dataset_name + '_diffusion_r%d_p%d_n%d.pkl' % (pr_hop, pr_steps, maximum_neighbor_number)
     os.makedirs(os.path.join(output_path, dataset_name), exist_ok=True)
     if os.path.exists(os.path.join(output_path, dataset_name, diffusion_path)):
         with open(os.path.join(output_path, dataset_name, diffusion_path), 'rb') as df:

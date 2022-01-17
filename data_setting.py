@@ -1,5 +1,6 @@
 dataset_path = '.\\'
-dataset_name = 'Amazon'
+# dataset_name = 'Amazon'
+dataset_name = 'DBLP'
 dataset_graph = dataset_name + '_graph.pkl'
 dataset_filter_community = dataset_name + '_filter_community.pkl'
 

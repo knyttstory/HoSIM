@@ -1,4 +1,4 @@
-Multiple Local Community Detection based on Higher-order Structural Importance (HoSIM)
+HoSIM: Higher-order Structural Importance based Method for Multiple Local Community Detection
 ===============================================
 
 About

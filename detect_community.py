@@ -1,8 +1,9 @@
 import networkx as nx
 
-from sample_subgraph import *
-from calculate_importance import *
+from parameter_setting import *
 import ppr_cd
+from calculate_importance import *
+from sample_subgraph import *
 
 
 def detect_multiple_communities(graph_data, subgraph_data, sampled_cores, query_node, diffused_nodes, coefficient_nodes):
@@ -44,12 +45,12 @@ def count_diffusion_information(graph_data, subgraph_data, sampled_all_cores, di
     else:
         candidate_nodes = sampled_all_cores
     for ns in candidate_nodes:
-        node_importances.append([ns, calculate_importance(graph_data, subgraph_data, ns, diffused_nodes, coefficient_nodes)])
+        node_importances.append([ns, count_importance(graph_data, subgraph_data, ns, diffused_nodes, coefficient_nodes)])
         node_weights[ns] = node_importances[-1][1]
     node_importances = sorted(node_importances, key=lambda x: x[1], reverse=True)
     return node_importances, node_weights
 
-def calculate_importance(graph_data, subgraph_data, center_node, diffused_nodes, coefficient_nodes):
+def count_importance(graph_data, subgraph_data, center_node, diffused_nodes, coefficient_nodes):
     temp_nodes = nx.ego_graph(subgraph_data, center_node, radius=pr_hop).nodes
     if len(temp_nodes) > maximum_diffusion_subgraph_size:
         temp_coefficient = list()

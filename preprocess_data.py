@@ -6,15 +6,13 @@ import random
 import networkx as nx
 
 
-dataset_names = ['Amazon', 'DBLP']
+dataset_names = ['Amazon', 'DBLP', 'LiveJournal']
 overlapping_number = 5
 seed_size = 100
 minimum_size = 1
 maximum_size = 999999
 filter_percents = None
 identity_flag = True
-
-random.seed(0)
 
 
 def read_graph(graph_name, output_graph):
@@ -27,7 +25,8 @@ def read_graph(graph_name, output_graph):
             all_pairs.append((int(node_pair[0]), int(node_pair[1])))
         graph_data = nx.Graph()
         graph_data.add_edges_from(all_pairs)
-    print(len(graph_data.nodes), len(graph_data.edges))
+    print("Number of nodes: %d" % (len(graph_data.nodes)))
+    print("Number of edges: %d" % (len(graph_data.edges)))
     with open(output_graph, 'wb') as og:
         pickle.dump(graph_data, og)
     return graph_data
@@ -51,7 +50,7 @@ def read_communities(graph_data, community_name, output_community):
                 if exist_flag is True:
                     continue
             community_data.append(temp_community)
-    print(len(community_data))
+    print("Number of communities: %d" % (len(community_data)))
     if filter_percents is not None:
         community_data = sorted(community_data, key=lambda x: len(x), reverse=False)
         border_number = math.floor(len(community_data) * filter_percents)
@@ -116,6 +115,7 @@ def store_seed_communities(query_nodes, node_community, community_data, output_s
 
 def main(dataset_name):
     print(dataset_name)
+    random.seed(0)
     graph_name = os.path.join(dataset_name, dataset_name+'_graph.txt')
     output_graph = os.path.join(dataset_name, dataset_name+'_graph.pkl')
     graph_data = read_graph(graph_name, output_graph)

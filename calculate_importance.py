@@ -4,7 +4,6 @@ import networkx as nx
 
 from parameter_setting import *
 
-
 def diffuse_node(graph_data, dn, diffused_nodes, coefficient_nodes):
     if dn in diffused_nodes:
         return

@@ -18,7 +18,7 @@ The descriptions of python files
 * parameter_setting.py: parameter setting
 * ppr_cd.py: PRN algorithm
 * preprocess_data.py: remove copies from original communities and select seeds (you should run this python file first, and then run "hosim_run.py")
-* sample_subgraph.py: sample subgraph
+* sample_subgraph.py: sample subgraphs
 
 
 How to use your own datasets

@@ -51,6 +51,14 @@ def count_diffusion_information(graph_data, subgraph_data, sampled_all_cores, di
 
 def calculate_importance(graph_data, subgraph_data, center_node, diffused_nodes, coefficient_nodes):
     temp_nodes = nx.ego_graph(subgraph_data, center_node, radius=pr_hop).nodes
+    if len(temp_nodes) > maximum_diffusion_subgraph_size:
+        temp_coefficient = list()
+        for tn in temp_nodes:
+            if tn not in coefficient_nodes:
+                coefficient_nodes[tn] = nx.clustering(graph_data, tn)
+            temp_coefficient.append([tn, coefficient_nodes[tn]])
+        temp_coefficient = sorted(temp_coefficient, key=lambda x: x[1], reverse=True)
+        temp_nodes = set([tc[0] for tc in temp_coefficient[:maximum_diffusion_subgraph_size]])
     sum_importance = 0
     for tn in temp_nodes:
         if tn == center_node:
@@ -82,7 +90,10 @@ def pick_components(seeds_components, nodes_weights):
 
 def detect_community(subgraph_data, nodes_weights, seed_nodes, query_node, sampled_cores):
     center_node = find_important_node(seed_nodes, nodes_weights)
-    seed_set = seed_nodes.union(find_important_path(nx.subgraph(subgraph_data, sampled_cores), nodes_weights, query_node, center_node))
+    if all_shortest_flag is True:
+        seed_set = seed_nodes.union(find_important_path(nx.subgraph(subgraph_data, sampled_cores), nodes_weights, query_node, center_node))
+    else:
+        seed_set = seed_nodes.union(set(nx.shortest_path(nx.subgraph(subgraph_data, sampled_cores), query_node, center_node)))
     detected_community = ppr_cd.ppr_cd(subgraph_data, seed_set, query_node, center_node)
     return detected_community
 
@@ -115,7 +126,7 @@ def add_more_nodes(graph_data, subgraph_data, detected_communities, diffused_nod
     for dc in detected_communities:
         while True:
             new_add_nodes = set()
-            temp_neighbors = get_neighbors(subgraph_data, dc)
+            temp_neighbors = get_neighbors(subgraph_data, dc, coefficient_nodes, None)
             for tn in temp_neighbors:
                 if tn in dc:
                     continue

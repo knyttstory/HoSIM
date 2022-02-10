@@ -1,8 +1,9 @@
 import copy
 import networkx as nx
 
-from calculate_importance import *
+from parameter_setting import *
 import ppr_cd
+from calculate_importance import *
 
 
 def sample_subgraph(graph_data, query_node, diffused_nodes, coefficient_nodes):

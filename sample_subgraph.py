@@ -10,9 +10,9 @@ def sample_subgraph(graph_data, query_node, diffused_nodes, coefficient_nodes):
     if lorw_flag is True:
         sampled_nodes = lorw_nodes(graph_data, sampled_nodes, diffused_nodes, coefficient_nodes)
     core_nodes = copy.deepcopy(sampled_nodes)
-    if add_boundary_flag is True:
-        sampled_nodes = sampled_nodes.union(get_neighbors(graph_data, sampled_nodes))
-        sampled_nodes = sampled_nodes.union(get_neighbors(graph_data, sampled_nodes))
+    if add_boundary_number is not None and len(core_nodes) <= maximum_sample_subgraph_size:
+        for i in range(add_boundary_number):
+            sampled_nodes = sampled_nodes.union(get_neighbors(graph_data, sampled_nodes, coefficient_nodes, maximum_sample_subgraph_size - len(sampled_nodes)))
     return sampled_nodes, core_nodes
 
 def diffusion_nodes(graph_data, query_node):
@@ -42,7 +42,7 @@ def diffusion_nodes(graph_data, query_node):
 def lorw_nodes(graph_data, sample_nodes, diffused_nodes, coefficient_nodes):
     add_number = 0
     while add_number < lorw_size:
-        temp_neighbors = get_neighbors(graph_data, sample_nodes)
+        temp_neighbors = get_neighbors(graph_data, sample_nodes, coefficient_nodes, lorw_size)
         temp_add_nodes = list()
         for tn in temp_neighbors:
             sum_inside = 0
@@ -57,10 +57,18 @@ def lorw_nodes(graph_data, sample_nodes, diffused_nodes, coefficient_nodes):
         add_number += len(add_nodes_list)
     return sample_nodes
 
-def get_neighbors(graph_data, sampled_nodes):
+def get_neighbors(graph_data, sampled_nodes, coefficient_nodes, maximum_size):
     neighbors_nodes = set()
     for tsn in sampled_nodes:
         for tn in nx.neighbors(graph_data, tsn):
             if tn not in sampled_nodes:
                 neighbors_nodes.add(tn)
+    if maximum_size is not None and len(neighbors_nodes) > maximum_size:
+        temp_coefficient = list()
+        for tn in neighbors_nodes:
+            if tn not in coefficient_nodes:
+                coefficient_nodes[tn] = nx.clustering(graph_data, tn)
+            temp_coefficient.append([tn, coefficient_nodes[tn]])
+        temp_coefficient = sorted(temp_coefficient, key=lambda x: x[1], reverse=True)
+        neighbors_nodes = set([tc[0] for tc in temp_coefficient[:maximum_size]])
     return neighbors_nodes

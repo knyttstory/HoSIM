@@ -13,6 +13,6 @@ maximum_sample_subgraph_size = 10000
 
 speedup_flag = True
 components_number = 10
-add_threshold = 0.3
+add_threshold = 0.8
 remove_flag = True
 remove_threshold = 0.2

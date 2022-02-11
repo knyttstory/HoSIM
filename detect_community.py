@@ -1,6 +1,7 @@
 import networkx as nx
 
 from parameter_setting import *
+import parameter_setting
 import ppr_cd
 from calculate_importance import *
 from sample_subgraph import *
@@ -136,7 +137,7 @@ def add_more_nodes(graph_data, subgraph_data, detected_communities, diffused_nod
                 for dn in diffused_nodes[tn]:
                     if dn in dc:
                         sum_inside += diffused_nodes[tn][dn]
-                if sum_inside >= add_threshold:
+                if sum_inside >= parameter_setting.add_threshold:
                     new_add_nodes.add(tn)
             if len(new_add_nodes) == 0:
                 break
@@ -156,7 +157,7 @@ def remove_nodes(graph_data, detected_communities, diffused_nodes, coefficient_n
                 for dn in diffused_nodes[tn]:
                     if dn in dc:
                         sum_inside += diffused_nodes[tn][dn]
-                if sum_inside < remove_threshold:
+                if sum_inside < parameter_setting.remove_threshold:
                     removed_nodes.add(tn)
             if len(removed_nodes) == 0:
                 break

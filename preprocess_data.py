@@ -6,7 +6,7 @@ import random
 import networkx as nx
 
 
-dataset_names = ['Amazon', 'DBLP', 'LiveJournal']
+dataset_names = ['Amazon', 'DBLP']
 overlapping_number = 5
 seed_size = 100
 minimum_size = 1

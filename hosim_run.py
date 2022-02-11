@@ -6,6 +6,7 @@ import networkx as nx
 
 from data_setting import *
 from parameter_setting import *
+import parameter_setting
 from sample_subgraph import *
 from detect_community import *
 import evaluate_community
@@ -15,6 +16,18 @@ def read_graph_data():
     with open(os.path.join(dataset_path, dataset_name, dataset_graph), 'rb') as gf:
         graph_data = pickle.load(gf)
     return graph_data
+
+def set_delta(dataset_name):
+    if dataset_name == "Amazon":
+        parameter_setting.add_threshold = 0.8
+        parameter_setting.remove_threshold = 0.2
+    elif dataset_name == "DBLP":
+        parameter_setting.add_threshold = 0.7
+        parameter_setting.remove_threshold = 0.1
+    else:
+        parameter_setting.add_threshold = 0.3
+        parameter_setting.remove_threshold = 0.2
+    return
 
 def read_diffusion_information():
     diffusion_path = dataset_name + '_diffusion_r%d_p%d_n%d.pkl' % (pr_hop, pr_steps, maximum_neighbor_number)
@@ -57,7 +70,7 @@ def main():
     graph_data = read_graph_data()
     diffused_nodes, coefficient_nodes, diffusion_path = read_diffusion_information()
     sampled_all_subgraphs, sampled_all_cores, sample_path, sample_time = sample_all_subgraphs(graph_data, diffused_nodes, coefficient_nodes)
-    detect_path = "sf%s_cn%d_at%.1f_rf%s_rt%.1f" % ("T" if speedup_flag else "F", components_number, add_threshold, "T" if remove_flag else "F", remove_threshold)
+    detect_path = "sf%s_cn%d_at%.1f_rf%s_rt%.1f" % ("T" if speedup_flag else "F", components_number, parameter_setting.add_threshold, "T" if remove_flag else "F", parameter_setting.remove_threshold)
     os.makedirs(os.path.join(output_path, dataset_name, sample_path, detect_path), exist_ok=True)
     print("Start to detect communities")
     detect_time = 0
@@ -83,5 +96,6 @@ def main():
 
 if __name__ == '__main__':
     print(dataset_name)
+    set_delta(dataset_name)
     sample_path, detect_path = main()
     evaluate_community.main_run(sample_path, detect_path)

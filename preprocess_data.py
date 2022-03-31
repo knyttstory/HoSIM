@@ -44,7 +44,7 @@ def read_communities(graph_data, community_name, output_community):
             if identity_flag is True:
                 exist_flag = False
                 for pc in community_data:
-                    if len(temp_community.intersection(pc)) == len(temp_community.union(pc)):
+                    if pc == temp_community:
                         exist_flag = True
                         break
                 if exist_flag is True:

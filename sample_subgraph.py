@@ -25,7 +25,7 @@ def diffusion_nodes(graph_data, query_node):
         else:
             break
     if len(temp_subgraph.nodes) > diffusion_size:
-        nodes_probabilities = ppr_cd.ppr_cd(temp_subgraph, [query_node, ], query_node, None, True)
+        nodes_probabilities = ppr_cd.ppr_cd(temp_subgraph, [query_node, ], query_node, -1, True)
         node_list = [np[0] for np in nodes_probabilities[:min(len(nodes_probabilities), int(diffusion_size))]]
         community_subgraph = nx.subgraph(graph_data, node_list)
         if nx.is_connected(community_subgraph) is False:

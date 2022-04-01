@@ -16,7 +16,7 @@ The descriptions of python files
 * evaluate_community.py: evaluate detected communities by using F1-score
 * hosim_run.py: run HoSIM
 * parameter_setting.py: parameter setting
-* ppr_cd.py: PRN algorithm
+* ppr_cd.cp310-win_amd64.pyd: PRN algorithm
 * preprocess_data.py: remove copies from original communities and select seeds (you should run this python file first, and then run "hosim_run.py")
 * sample_subgraph.py: sample subgraphs
 

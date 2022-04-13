@@ -1,9 +1,7 @@
 import os
 import tqdm
-import math
 import pickle
 import random
-import networkx as nx
 
 
 dataset_names = ['Amazon', 'DBLP']
@@ -11,27 +9,36 @@ overlapping_number = 5
 seed_size = 100
 minimum_size = 1
 maximum_size = 999999
-filter_percents = None
+filter_percents = -1
 identity_flag = True
 
 
 def read_graph(graph_name, output_graph):
+    adjacency_list = dict()
+    number_edges = 0
     with open(graph_name, 'r') as gn:
-        all_pairs = list()
         for node_pair in tqdm.tqdm(gn.readlines()):
-            node_pair = node_pair.strip().split()
             if node_pair[0] == '#':
                 continue
-            all_pairs.append((int(node_pair[0]), int(node_pair[1])))
-        graph_data = nx.Graph()
-        graph_data.add_edges_from(all_pairs)
-    print("Number of nodes: %d" % (len(graph_data.nodes)))
-    print("Number of edges: %d" % (len(graph_data.edges)))
+            number_edges += 1
+            node_pair = node_pair.strip().split()
+            first_node = int(node_pair[0])
+            second_node = int(node_pair[1])
+            add_edge_to_al(adjacency_list, first_node, second_node)
+            add_edge_to_al(adjacency_list, second_node, first_node)
+    print("Number of nodes: %d" % (len(adjacency_list)))
+    print("Number of edges: %d" % (number_edges))
     with open(output_graph, 'wb') as og:
-        pickle.dump(graph_data, og)
-    return graph_data
+        pickle.dump(adjacency_list, og)
+    return adjacency_list
 
-def read_communities(graph_data, community_name, output_community):
+def add_edge_to_al(adjacency_list, first_node, second_node):
+    if first_node not in adjacency_list:
+        adjacency_list[first_node] = set()
+    adjacency_list[first_node].add(second_node)
+    return
+
+def read_communities(adjacency_list, community_name, output_community):
     with open(community_name, 'r') as cn:
         community_data = list()
         for each_community in tqdm.tqdm(cn.readlines()):
@@ -51,9 +58,9 @@ def read_communities(graph_data, community_name, output_community):
                     continue
             community_data.append(temp_community)
     print("Number of communities: %d" % (len(community_data)))
-    if filter_percents is not None:
+    if filter_percents > 0:
         community_data = sorted(community_data, key=lambda x: len(x), reverse=False)
-        border_number = math.floor(len(community_data) * filter_percents)
+        border_number = int(len(community_data) * filter_percents)
         while True:
             if border_number + 1 < len(community_data) and len(community_data[border_number]) == len(community_data[border_number + 1]):
                 border_number += 1
@@ -63,10 +70,10 @@ def read_communities(graph_data, community_name, output_community):
         print(len(community_data))
     with open(output_community, 'wb') as oc:
         pickle.dump(community_data, oc)
-    count_community_attribute(graph_data, community_data)
+    count_community_attribute(adjacency_list, community_data)
     return community_data
 
-def count_community_attribute(graph_data, community_data):
+def count_community_attribute(adjacency_list, community_data):
     largest_size = 0
     sum_sizes = 0
     sum_mu = 0
@@ -74,17 +81,17 @@ def count_community_attribute(graph_data, community_data):
         if len(cm) > largest_size:
             largest_size = len(cm)
         sum_sizes += len(cm)
-        sum_mu += calculate_mu(graph_data, cm)
+        sum_mu += calculate_mu(adjacency_list, cm)
     print("Largest size: %d" % (largest_size))
     print("Average size: %.2f" % (sum_sizes / len(community_data)))
     print("Average mu: %.2f" % (sum_mu / len(community_data)))
     return
 
-def calculate_mu(graph_data, community):
-    temp_subgraph = nx.subgraph(graph_data, community)
+def calculate_mu(adjacency_list, community):
     sum_mu = 0
     for cn in community:
-        sum_mu += (nx.degree(graph_data, cn) - nx.degree(temp_subgraph, cn)) / nx.degree(graph_data, cn)
+        out_degree = len(adjacency_list[cn]) - len(adjacency_list[cn].intersection(community))
+        sum_mu += out_degree / len(adjacency_list[cn])
     return sum_mu / len(community)
 
 def count_community_information(community_data):

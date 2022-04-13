@@ -1,63 +1,62 @@
-import networkx as nx
-
 from parameter_setting import *
 import parameter_setting
 import ppr_cd
 from calculate_importance import *
-from sample_subgraph import *
+import utils
 
 
-def detect_multiple_communities(graph_data, subgraph_data, sampled_cores, query_node, diffused_nodes, coefficient_nodes):
+def detect_multiple_communities(adjacency_list, sampled_all_nodes, sampled_core_nodes, query_node, diffused_nodes, coefficient_nodes):
     detected_communities = list()
-    node_importances, nodes_weights = count_diffusion_information(graph_data, subgraph_data, sampled_cores, diffused_nodes, coefficient_nodes)
+    node_importances, nodes_weights = count_diffusion_information(adjacency_list, sampled_all_nodes, sampled_core_nodes, diffused_nodes, coefficient_nodes)
     seeds_sets = find_seeds_sets(query_node, node_importances)
     if len(seeds_sets) > 0:
-        temp_seeds_subgraphs = nx.subgraph(subgraph_data, seeds_sets)
-        seeds_components = list(nx.connected_components(temp_seeds_subgraphs))
-        if len(seeds_components) > components_number:
-            seeds_components = pick_components(seeds_components, nodes_weights)
-        for sc in seeds_components:
-            dc = detect_community(subgraph_data, nodes_weights, set(sc), query_node, sampled_cores)
+        seed_components = utils.return_subgraph_connected_components(adjacency_list, seeds_sets)
+        if len(seed_components) > components_number:
+            seed_components = pick_components(seed_components, nodes_weights)
+        for sc in seed_components:
+            dc = detect_community(adjacency_list, sampled_all_nodes, nodes_weights, set(sc), query_node, sampled_core_nodes)
             if query_node in dc:
                 detected_communities.append(dc)
     if len(detected_communities) == 0:
-        dc = ppr_cd.ppr_cd(subgraph_data, [query_node, ], query_node)
+        dc = ppr_cd.ppr_cd(adjacency_list, sampled_all_nodes, [query_node, ], query_node)
         if query_node in dc:
             detected_communities.append(dc)
         else:
             detected_communities.append([query_node, ])
-    detected_communities = add_more_nodes(graph_data, subgraph_data, detected_communities, diffused_nodes, coefficient_nodes)
+    detected_communities = add_more_nodes(adjacency_list, sampled_all_nodes, detected_communities, diffused_nodes, coefficient_nodes)
     if remove_flag is True:
-        detected_communities = remove_nodes(graph_data, detected_communities, diffused_nodes, coefficient_nodes)
+        detected_communities = remove_nodes(adjacency_list, detected_communities, diffused_nodes, coefficient_nodes)
     return detected_communities
 
-def count_diffusion_information(graph_data, subgraph_data, sampled_all_cores, diffused_nodes, coefficient_nodes):
+def count_diffusion_information(adjacency_list, sampled_all_nodes, sampled_core_nodes, diffused_nodes, coefficient_nodes):
     node_importances = list()
     node_weights = dict()
     if speedup_flag is True:
         nodes_coefficients = list()
-        for ns in sampled_all_cores:
+        for ns in sampled_core_nodes:
             if ns not in coefficient_nodes:
-                coefficient_nodes[ns] = nx.clustering(graph_data, ns)
+                coefficient_nodes[ns] = utils.calculate_clustering(adjacency_list, ns)
             nodes_coefficients.append([ns, coefficient_nodes[ns]])
         nodes_coefficients = sorted(nodes_coefficients, key=lambda x: x[1], reverse=True)
         nodes_coefficients = nodes_coefficients[:lorw_size]
         candidate_nodes = [tn[0] for tn in nodes_coefficients]
     else:
-        candidate_nodes = sampled_all_cores
+        candidate_nodes = sampled_core_nodes
     for ns in candidate_nodes:
-        node_importances.append([ns, count_importance(graph_data, subgraph_data, ns, diffused_nodes, coefficient_nodes)])
+        node_importances.append([ns, count_importance(adjacency_list, sampled_all_nodes, ns, diffused_nodes, coefficient_nodes)])
         node_weights[ns] = node_importances[-1][1]
     node_importances = sorted(node_importances, key=lambda x: x[1], reverse=True)
     return node_importances, node_weights
 
-def count_importance(graph_data, subgraph_data, center_node, diffused_nodes, coefficient_nodes):
-    temp_nodes = nx.ego_graph(subgraph_data, center_node, radius=pr_hop).nodes
+def count_importance(adjacency_list, sampled_all_nodes, center_node, diffused_nodes, coefficient_nodes):
+    temp_set = set()
+    temp_set.add(center_node)
+    temp_nodes = utils.return_subgraph_ego_nodes(adjacency_list, sampled_all_nodes, temp_set, radius=pr_hop)
     if len(temp_nodes) > maximum_diffusion_subgraph_size:
         temp_coefficient = list()
         for tn in temp_nodes:
             if tn not in coefficient_nodes:
-                coefficient_nodes[tn] = nx.clustering(graph_data, tn)
+                coefficient_nodes[tn] = utils.calculate_clustering(adjacency_list, tn)
             temp_coefficient.append([tn, coefficient_nodes[tn]])
         temp_coefficient = sorted(temp_coefficient, key=lambda x: x[1], reverse=True)
         temp_nodes = set([tc[0] for tc in temp_coefficient[:maximum_diffusion_subgraph_size]])
@@ -65,16 +64,16 @@ def count_importance(graph_data, subgraph_data, center_node, diffused_nodes, coe
     for tn in temp_nodes:
         if tn == center_node:
             continue
-        diffuse_node(graph_data, tn, diffused_nodes, coefficient_nodes)
+        diffuse_node(adjacency_list, tn, diffused_nodes, coefficient_nodes)
         if center_node in diffused_nodes[tn]:
             sum_importance += diffused_nodes[tn][center_node]
     return sum_importance
 
 def find_seeds_sets(query_node, node_importances):
-    bigger_nodes = list()
+    bigger_nodes = set()
     for ni in node_importances:
         if ni[0] != query_node:
-            bigger_nodes.append(ni[0])
+            bigger_nodes.add(ni[0])
         else:
             return bigger_nodes
     return bigger_nodes
@@ -90,13 +89,13 @@ def pick_components(seeds_components, nodes_weights):
     components_importance = sorted(components_importance, key=lambda x: x[1], reverse=True)
     return [ci[0] for ci in components_importance[:components_number]]
 
-def detect_community(subgraph_data, nodes_weights, seed_nodes, query_node, sampled_cores):
+def detect_community(adjacency_list, sampled_all_nodes, nodes_weights, seed_nodes, query_node, sampled_core_nodes):
     center_node = find_important_node(seed_nodes, nodes_weights)
     if all_shortest_flag is True:
-        seed_set = seed_nodes.union(find_important_path(nx.subgraph(subgraph_data, sampled_cores), nodes_weights, query_node, center_node))
+        seed_set = seed_nodes.union(find_important_path(adjacency_list, sampled_core_nodes, nodes_weights, query_node, center_node))
     else:
-        seed_set = seed_nodes.union(set(nx.shortest_path(nx.subgraph(subgraph_data, sampled_cores), query_node, center_node)))
-    detected_community = ppr_cd.ppr_cd(subgraph_data, seed_set, query_node, center_node)
+        seed_set = seed_nodes.union(utils.return_single_shortest_path(adjacency_list, sampled_core_nodes, query_node, center_node))
+    detected_community = ppr_cd.ppr_cd(adjacency_list, sampled_all_nodes, seed_set, query_node, center_node)
     return detected_community
 
 def find_important_node(seed_nodes, nodes_weights):
@@ -108,10 +107,10 @@ def find_important_node(seed_nodes, nodes_weights):
             max_node = sn
     return max_node
 
-def find_important_path(sampled_subgraph, nodes_weights, query_node, center_node):
+def find_important_path(adjacency_list, sampled_core_nodes, nodes_weights, query_node, center_node):
     max_weight = -1
     max_path = -1
-    for ap in nx.all_shortest_paths(sampled_subgraph, query_node, center_node):
+    for ap in utils.return_all_shortest_paths(adjacency_list, sampled_core_nodes, query_node, center_node):
         sum_weight = 0
         for tn in ap:
             if tn in nodes_weights:
@@ -120,20 +119,22 @@ def find_important_path(sampled_subgraph, nodes_weights, query_node, center_node
             max_weight = sum_weight
             max_path = ap
     seed_set = set(max_path)
-    seed_set = seed_set.union(set((nx.ego_graph(sampled_subgraph, center_node, radius=1)).nodes))
+    temp_set = set()
+    temp_set.add(center_node)
+    seed_set = seed_set.union(utils.return_subgraph_ego_nodes(adjacency_list, sampled_core_nodes, temp_set, radius=1))
     return seed_set
 
-def add_more_nodes(graph_data, subgraph_data, detected_communities, diffused_nodes, coefficient_nodes):
+def add_more_nodes(adjacency_list, sampled_all_nodes, detected_communities, diffused_nodes, coefficient_nodes):
     new_communities = list()
     for dc in detected_communities:
         while True:
             new_add_nodes = set()
-            temp_neighbors = get_neighbors(subgraph_data, dc, coefficient_nodes, None)
+            temp_neighbors = utils.get_subgraph_neighbors_by_coefficient(adjacency_list, sampled_all_nodes, dc, coefficient_nodes, -1)
             for tn in temp_neighbors:
                 if tn in dc:
                     continue
                 sum_inside = 0
-                diffuse_node(graph_data, tn, diffused_nodes, coefficient_nodes)
+                diffuse_node(adjacency_list, tn, diffused_nodes, coefficient_nodes)
                 for dn in diffused_nodes[tn]:
                     if dn in dc:
                         sum_inside += diffused_nodes[tn][dn]
@@ -146,13 +147,13 @@ def add_more_nodes(graph_data, subgraph_data, detected_communities, diffused_nod
         new_communities.append(dc)
     return new_communities
 
-def remove_nodes(graph_data, detected_communities, diffused_nodes, coefficient_nodes):
+def remove_nodes(adjacency_list, detected_communities, diffused_nodes, coefficient_nodes):
     new_communities = list()
     for dc in detected_communities:
         while True:
             removed_nodes = set()
             for tn in dc:
-                diffuse_node(graph_data, tn, diffused_nodes, coefficient_nodes)
+                diffuse_node(adjacency_list, tn, diffused_nodes, coefficient_nodes)
                 sum_inside = 0
                 for dn in diffused_nodes[tn]:
                     if dn in dc:

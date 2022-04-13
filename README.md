@@ -14,11 +14,13 @@ The descriptions of python files
 * data_setting.py: dataset setting
 * detect_community.py: detect local communities
 * evaluate_community.py: evaluate detected communities by using F1-score
-* hosim_run.py: run HoSIM
+* hosim_model.py: HoSIM model
+* main_run.py: run HoSIM
 * parameter_setting.py: parameter setting
-* ppr_cd.cp310-win_amd64.pyd: PRN algorithm
+* ppr_cd.py: PRN algorithm
 * preprocess_data.py: remove copies from original communities and select seeds (you should run this python file first, and then run "hosim_run.py")
 * sample_subgraph.py: sample subgraphs
+* utils.py: util algorithms
 
 
 How to use your own datasets

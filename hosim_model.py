@@ -2,20 +2,13 @@ import os
 import time
 import tqdm
 import pickle
-import networkx as nx
 
 from data_setting import *
 from parameter_setting import *
 import parameter_setting
-from sample_subgraph import *
-from detect_community import *
-import evaluate_community
+import sample_subgraph
+import detect_community
 
-
-def read_graph_data():
-    with open(os.path.join(dataset_path, dataset_name, dataset_graph), 'rb') as gf:
-        graph_data = pickle.load(gf)
-    return graph_data
 
 def set_delta(dataset_name):
     if dataset_name == "Amazon":
@@ -29,6 +22,11 @@ def set_delta(dataset_name):
         parameter_setting.remove_threshold = 0.2
     return
 
+def read_graph_data():
+    with open(os.path.join(dataset_path, dataset_name, dataset_graph), 'rb') as gf:
+        adjacency_list = pickle.load(gf)
+    return adjacency_list
+
 def read_diffusion_information():
     diffusion_path = dataset_name + '_diffusion_r%d_p%d_n%d.pkl' % (pr_hop, pr_steps, maximum_neighbor_number)
     os.makedirs(os.path.join(output_path, dataset_name), exist_ok=True)
@@ -40,7 +38,7 @@ def read_diffusion_information():
         coefficient_nodes = dict()
     return diffused_nodes, coefficient_nodes, diffusion_path
 
-def sample_all_subgraphs(graph_data, diffused_nodes, coefficient_nodes):
+def sample_all_subgraphs(adjacency_list, diffused_nodes, coefficient_nodes):
     sample_path = "ds%d_lf%s_ls%d_in%d_af%s" % (diffusion_size, "T" if lorw_flag else "F", lorw_size, iters_number, str(add_boundary_number) if add_boundary_number is not None else "F")
     os.makedirs(os.path.join(output_path, dataset_name, sample_path), exist_ok=True)
     if os.path.exists(os.path.join(output_path, dataset_name, sample_path, output_sampled_graph)):
@@ -58,7 +56,7 @@ def sample_all_subgraphs(graph_data, diffused_nodes, coefficient_nodes):
                 query_nodes = pickle.load(sf)
                 sum_nodes += len(query_nodes)
             for qn in tqdm.tqdm(query_nodes):
-                sampled_all_subgraphs[qn], sampled_all_cores[qn] = sample_subgraph(graph_data, qn, diffused_nodes, coefficient_nodes)
+                sampled_all_subgraphs[qn], sampled_all_cores[qn] = sample_subgraph.sample_subgraph(adjacency_list, qn, diffused_nodes, coefficient_nodes)
         sample_time = time.time() - start_time
         print("Average sample time: %.2f" % (sample_time / sum_nodes))
         with open(os.path.join(output_path, dataset_name, sample_path, output_sampled_graph), 'wb') as sf:
@@ -66,11 +64,16 @@ def sample_all_subgraphs(graph_data, diffused_nodes, coefficient_nodes):
     return sampled_all_subgraphs, sampled_all_cores, sample_path, sample_time
 
 
-def main():
-    graph_data = read_graph_data()
+def hosim_main():
+    set_delta(dataset_name)
+    adjacency_list = read_graph_data()
     diffused_nodes, coefficient_nodes, diffusion_path = read_diffusion_information()
-    sampled_all_subgraphs, sampled_all_cores, sample_path, sample_time = sample_all_subgraphs(graph_data, diffused_nodes, coefficient_nodes)
-    detect_path = "sf%s_cn%d_at%.1f_rf%s_rt%.1f" % ("T" if speedup_flag else "F", components_number, parameter_setting.add_threshold, "T" if remove_flag else "F", parameter_setting.remove_threshold)
+    sampled_all_subgraphs, sampled_all_cores, sample_path, sample_time = sample_all_subgraphs(adjacency_list,
+                                                                                              diffused_nodes,
+                                                                                              coefficient_nodes)
+    detect_path = "sf%s_cn%d_at%.1f_rf%s_rt%.1f" % (
+    "T" if speedup_flag else "F", components_number, parameter_setting.add_threshold, "T" if remove_flag else "F",
+    parameter_setting.remove_threshold)
     os.makedirs(os.path.join(output_path, dataset_name, sample_path, detect_path), exist_ok=True)
     print("Start to detect communities")
     detect_time = 0
@@ -82,20 +85,14 @@ def main():
         detected_communities = dict()
         start_time = time.time()
         for qn in tqdm.tqdm(query_nodes):
-            subgraph_data = nx.subgraph(graph_data, sampled_all_subgraphs[qn])
-            detected_communities[qn] = detect_multiple_communities(graph_data, subgraph_data, sampled_all_cores[qn], qn, diffused_nodes, coefficient_nodes)
+            detected_communities[qn] = detect_community.detect_multiple_communities(adjacency_list, sampled_all_subgraphs[qn], sampled_all_cores[qn], qn,
+                                                                   diffused_nodes, coefficient_nodes)
         detect_time += time.time() - start_time
-        with open(os.path.join(output_path, dataset_name, sample_path, detect_path, output_detected_community[i]), 'wb') as df:
+        with open(os.path.join(output_path, dataset_name, sample_path, detect_path, output_detected_community[i]),
+                  'wb') as df:
             pickle.dump(detected_communities, df)
     print("Average detection time: %.2f" % (detect_time / sum_nodes))
     with open(os.path.join(output_path, dataset_name, diffusion_path), 'wb') as df:
         pickle.dump((diffused_nodes, coefficient_nodes), df)
     print("Average time: %.2f" % ((sample_time + detect_time) / sum_nodes))
     return sample_path, detect_path
-
-
-if __name__ == '__main__':
-    print(dataset_name)
-    set_delta(dataset_name)
-    sample_path, detect_path = main()
-    evaluate_community.main_run(sample_path, detect_path)

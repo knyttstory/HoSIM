@@ -41,7 +41,7 @@ def calculate_recall(detected_communities, ground_truth_communities):
     return sum_rec / len(ground_truth_communities)
 
 
-def main_run(sample_path, detect_path):
+def evaluation_run(sample_path, detect_path):
     print("Start to evaluate communities")
     df = pd.DataFrame(columns=["f1_score", "precision", "recall", "seed_name"])
     for data_index in range(len(dataset_seeds)):
